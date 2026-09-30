@@ -69,57 +69,112 @@ function UsersPanel({ members }: { members: Member[] }) {
         ))}
       </div>
       <Card className="overflow-hidden">
-        <div className="max-h-[640px] overflow-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Full name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Role</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.length === 0 ? (
-                <TableRow className="h-auto">
-                  <TableCell colSpan={4} className="px-4 py-12 text-center">
-                    <p className="text-h2 text-foreground">No people yet</p>
-                    <p className="mt-1 text-body text-muted">
-                      Profiles appear here after the first sign-in.
-                    </p>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                rows.map((member) => (
-                  <TableRow key={member.id} className="hover:bg-foreground/[0.03]">
-                    <TableCell className="font-medium">{member.fullName}</TableCell>
-                    <TableCell className="text-muted">{member.email || "—"}</TableCell>
-                    <TableCell>
-                      <Badge tone={statusTone[member.status]}>{memberStatusLabel[member.status]}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Select
-                        value={member.role}
-                        onValueChange={(value) => onRoleChange(member, value as MemberRole)}
-                      >
-                        <SelectTrigger aria-label={`Role for ${member.fullName}`} className="w-[140px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {roles.map((role) => (
-                            <SelectItem key={role.id} value={role.id}>
-                              {role.title}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+        {rows.length === 0 ? (
+          <>
+            <div className="px-4 py-12 text-center md:hidden">
+              <p className="text-h2 text-foreground">No people yet</p>
+              <p className="mt-1 text-body text-muted">Profiles appear here after the first sign-in.</p>
+            </div>
+            <div className="hidden overflow-auto md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Full name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Role</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow className="h-auto">
+                    <TableCell colSpan={4} className="p-0">
+                      <div className="px-4 py-12 text-center">
+                        <p className="text-h2 text-foreground">No people yet</p>
+                        <p className="mt-1 text-body text-muted">Profiles appear here after the first sign-in.</p>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                </TableBody>
+              </Table>
+            </div>
+          </>
+        ) : (
+          <>
+            <ul className="divide-y divide-border md:hidden">
+              {rows.map((member) => (
+                <li key={member.id} className="flex flex-col gap-3 px-4 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-body font-medium break-words text-foreground">{member.fullName}</p>
+                      <p className="truncate text-caption text-muted">{member.email || "—"}</p>
+                    </div>
+                    <Badge className="shrink-0" tone={statusTone[member.status]}>
+                      {memberStatusLabel[member.status]}
+                    </Badge>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <span className="text-caption text-muted">Role</span>
+                    <Select
+                      value={member.role}
+                      onValueChange={(value) => onRoleChange(member, value as MemberRole)}
+                    >
+                      <SelectTrigger aria-label={`Role for ${member.fullName}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roles.map((role) => (
+                          <SelectItem key={role.id} value={role.id}>
+                            {role.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="hidden max-h-[640px] overflow-auto md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Full name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Role</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((member) => (
+                    <TableRow key={member.id} className="hover:bg-foreground/[0.03]">
+                      <TableCell className="font-medium">{member.fullName}</TableCell>
+                      <TableCell className="text-muted">{member.email || "—"}</TableCell>
+                      <TableCell>
+                        <Badge tone={statusTone[member.status]}>{memberStatusLabel[member.status]}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={member.role}
+                          onValueChange={(value) => onRoleChange(member, value as MemberRole)}
+                        >
+                          <SelectTrigger aria-label={`Role for ${member.fullName}`} className="w-[140px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {roles.map((role) => (
+                              <SelectItem key={role.id} value={role.id}>
+                                {role.title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
+        )}
       </Card>
     </div>
   );

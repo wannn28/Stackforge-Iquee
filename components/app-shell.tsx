@@ -244,7 +244,7 @@ function AppShell({
           onNavigate={() => setMobileOpen(false)}
           onToggleCollapsed={toggleCollapsed}
         />
-        <div className={cn("flex min-h-screen flex-col md:pl-[240px]", collapsed && "md:pl-16")}>
+        <div className={cn("flex min-h-screen min-w-0 flex-col md:pl-[240px]", collapsed && "md:pl-16")}>
           <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-border bg-background/90 px-4 backdrop-blur md:px-6">
             <div className="flex items-center gap-2">
               <Button
@@ -264,7 +264,7 @@ function AppShell({
               <UserMenu user={user} preview={preview} />
             </div>
           </header>
-          <main className="flex-1 p-4 md:p-6">
+          <main className="min-w-0 flex-1 p-4 md:p-6">
             <div className="mx-auto w-full max-w-[1200px]">{children}</div>
           </main>
         </div>
