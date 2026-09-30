@@ -46,21 +46,24 @@ The Supabase CLI only auto-runs migration files whose names start with a 14-digi
 
 What the migration creates:
 
-- `app_role`: `admin`, `member`, `viewer`.
-- `profiles`: primary key `id` references `auth.users` and deletes with the user. Columns: `email`, `full_name`, `role` (default `member`), `avatar_url`, `created_at`, `updated_at`.
-- `records`: `id` (`gen_random_uuid()`), required `title`, `description`, `status` (default `open`), `owner_id` (defaults to `auth.uid()`, set null if the profile is removed), timestamps. The app can omit `owner_id` on insert; a non-admin cannot assign a record to someone else.
-- Trigger `handle_new_user` on `auth.users`: after insert, writes a `member` profile. Role always starts as `member`; user metadata cannot grant `admin`.
-- RLS enabled on both tables. `anon` has no table grants. Missing policy means deny.
-- Policies: a user can select and update their own profile; an admin can do everything on profiles. A user can select, insert, update, and delete records they own; an admin can do everything on records.
-- A signed-in user cannot change `profiles.role`. Promote the first admin from the SQL editor (where `auth.uid()` is null) or with the service role:
+- `app_role`: `owner`, `admin`, `member`.
+- `profile_status`: `active`, `invited`, `suspended`.
+- `record_status`: `open`, `in_progress`, `done`, `archived`.
+- `profiles`: primary key `id` references `auth.users` and deletes with the user. Columns: `email`, `full_name`, `role` (default `member`), `status` (default `active`), `created_at`, `updated_at`.
+- `records`: `id` (`gen_random_uuid()`), required `title`, optional `description`, `status` (default `open`), `owner_id` (defaults to `auth.uid()`, set null if the profile is removed), timestamps. A member can omit `owner_id` on insert and cannot assign a record to someone else.
+- `audit_logs`: append-only. Columns: `id`, `actor_id`, `action`, `entity`, `entity_id`, `meta` (jsonb), `created_at`. There is no `updated_at`. A trigger rejects `UPDATE` and `DELETE` for every role.
+- Trigger `handle_new_user` on `auth.users`: after insert, writes a profile with `role = member` and `status = active`. Metadata cannot choose either value.
+- RLS enabled on all three tables. `anon` has no table grants. Missing policy means deny.
+- Profiles: a user can select and update their own row. That update policy refuses a change to `role` or `status`. `owner` and `admin` can do everything on profiles.
+- Records: a user can select, insert, update, and delete rows they own. `owner` and `admin` can do everything on records.
+- Audit logs: an authenticated user can insert a row whose `actor_id` is their own id, and can select those rows. `owner` and `admin` can select every audit row. Nobody can update or delete.
+- Promote the first account from the SQL editor (where `auth.uid()` is null) or with the service role:
 
 ```sql
 update public.profiles
-set role = 'admin'
+set role = 'owner'
 where email = 'you@example.com';
 ```
-
-`viewer` is a stored role. Current policies allow every authenticated owner to CRUD their own records. A later migration can narrow `viewer` to read-only without changing this baseline.
 
 ### Auth (OAuth)
 
@@ -73,7 +76,7 @@ In the Supabase dashboard, Authentication → URL configuration:
 
 Enable each OAuth provider in Authentication → Providers. Provider client ids and secrets stay in the Supabase dashboard. This repo does not store them.
 
-The frontend callback route should exchange the code with the Supabase client and send the user back into the app. Google and GitHub populate `full_name` / `name` and `avatar_url` / `picture`; `handle_new_user` copies those onto the profile.
+The frontend callback route should exchange the code with the Supabase client and send the user back into the app. Google and GitHub populate `full_name` or `name`; `handle_new_user` copies that onto the profile and always stores `role = member`, `status = active`.
 
 ### Deploy to a VPS
 
