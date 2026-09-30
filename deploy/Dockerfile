@@ -1,54 +1,45 @@
 # syntax=docker/dockerfile:1
 
-# Placeholder image. package.json is not in this repo yet, and frontend owns
-# the Next.js app (app/, components/, and the lib/ Supabase client).
+# Next.js standalone image. Build context is the repository root
+# (see deploy/docker-compose.yml). Listens on port 3000 for nginx.
 #
-# This file only exists so deploy/docker-compose.yml has a buildable app
-# service that listens on port 3000. When frontend adds the Next.js app,
-# replace the instructions below with a standalone multi-stage build:
-#
-#   FROM node:22-alpine AS deps
-#   WORKDIR /app
-#   COPY package.json package-lock.json ./
-#   RUN npm ci
-#
-#   FROM node:22-alpine AS builder
-#   WORKDIR /app
-#   COPY --from=deps /app/node_modules ./node_modules
-#   COPY . .
-#   ENV NEXT_TELEMETRY_DISABLED=1
-#   # NEXT_PUBLIC_* values are inlined at build time. Pass them as build args.
-#   RUN npm run build
-#
-#   FROM node:22-alpine AS runner
-#   WORKDIR /app
-#   ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
-#   RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
-#   COPY --from=builder /app/public ./public
-#   COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-#   COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-#   USER nextjs
-#   EXPOSE 3000
-#   CMD ["node", "server.js"]
-#
-# That build requires output: "standalone" in next.config. Do not copy .env
-# into the image; inject runtime secrets via the compose env_file.
+# NEXT_PUBLIC_* values are inlined at build time. Pass them as build args.
+# Do not copy .env into the image. SUPABASE_SERVICE_ROLE_KEY stays a runtime
+# variable on the app service only.
 
-FROM node:22-alpine
-
-LABEL org.opencontainers.image.title="stackforge-iquee" \
-      org.opencontainers.image.description="Placeholder until the Next.js standalone build lands."
-
+FROM node:22-alpine AS deps
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
 
+FROM node:22-alpine AS builder
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN mkdir -p public
+ENV NEXT_TELEMETRY_DISABLED=1
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG NEXT_PUBLIC_APP_URL=https://stackforge.iquee.tech
+ARG NEXT_PUBLIC_SITE_URL=https://stackforge.iquee.tech
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY \
+    NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
+    NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+RUN npm run build
+
+FROM node:22-alpine AS runner
+WORKDIR /app
 ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
     HOSTNAME=0.0.0.0
-
-COPY deploy/placeholder-server.js /app/server.js
-
-USER node
-
+RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+USER nextjs
 EXPOSE 3000
-
 CMD ["node", "server.js"]

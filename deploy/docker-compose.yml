@@ -1,6 +1,8 @@
 # Single-VPS runtime for stackforge.iquee.tech.
-# From deploy/: docker compose up -d --build
+# From deploy/: docker compose --env-file ../.env up -d --build
 # Requires ../.env (see ../.env.example) and ./certs/origin.crt + origin.key.
+# --env-file feeds NEXT_PUBLIC_* into the image build. The app service still
+# loads ../.env at runtime for SUPABASE_SERVICE_ROLE_KEY.
 
 name: stackforge
 
@@ -9,6 +11,11 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-https://rnoglrespnizjxnybdcc.supabase.co}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://stackforge.iquee.tech}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://stackforge.iquee.tech}
     image: stackforge-iquee-app:local
     env_file:
       - path: ../.env
@@ -34,7 +41,7 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 40s
     logging:
       driver: json-file
       options:

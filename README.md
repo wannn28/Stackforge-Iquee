@@ -1,8 +1,83 @@
-# Stackforge-Iquee
+# Stackforge
 
-Backend and deploy for [stackforge.iquee.tech](https://stackforge.iquee.tech). Postgres and Auth run on Supabase. The app process runs on a single VPS behind nginx, with Cloudflare in SSL mode **Full**.
+Operations console for [stackforge.iquee.tech](https://stackforge.iquee.tech). This repository is a Next.js app at the root, plus the Supabase schema, the VPS deploy, and CI.
 
-Frontend owns the Next.js UI: `app/`, `components/`, and the browser Supabase client under `lib/`. This tree adds the database migration, the environment contract, the container deploy, and CI. It does not scaffold the Next.js app.
+Postgres and Auth run on Supabase. The app process runs on a single VPS behind nginx, with Cloudflare in SSL mode **Full**.
+
+## Stack
+
+- Next.js 15 App Router, TypeScript, Tailwind CSS 4
+- shadcn-style UI (`components/ui`, `components.json`)
+- Supabase Auth with `@supabase/ssr` (email/password and Google)
+- Browser client uses the anon key only
+
+## Setup
+
+1. Install and copy env:
+
+```bash
+npm install
+cp .env.example .env.local
+```
+
+2. In the Supabase project, set:
+
+- Site URL: `https://stackforge.iquee.tech`
+- Redirect URLs:
+  - `https://stackforge.iquee.tech/auth/callback`
+  - `http://localhost:3000/auth/callback`
+- Auth providers: Email and Google
+
+3. Put the anon key only in the gitignored file. `.env.example` sets the public project URL and leaves `NEXT_PUBLIC_SUPABASE_ANON_KEY` empty. Do not commit that key.
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://rnoglrespnizjxnybdcc.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=   # paste the team anon JWT here, in .env.local only
+NEXT_PUBLIC_APP_URL=https://stackforge.iquee.tech
+```
+
+The host `moqlrespnizjxnybdcc.supabase.co` does not resolve. Use `rnoglrespnizjxnybdcc` only. Decode the JWT payload and confirm `ref` is `rnoglrespnizjxnybdcc` before saving `.env.local`. `createBrowserClient` and `createServerClient` both read `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. If the JWT `ref` does not match the project ref in the URL, those clients stay unconfigured.
+
+`SUPABASE_SERVICE_ROLE_KEY` is server-only. Do not prefix it with `NEXT_PUBLIC_` and do not import it from client components. This app never sends it to the browser, so row-level security still applies to every query.
+
+4. Run:
+
+```bash
+npm run dev
+npm run lint
+npm run typecheck
+npm run build
+```
+
+Without Supabase keys, `STACKFORGE_PREVIEW=1 npm run dev` renders the signed-in shell with sample data. That flag is ignored when `NODE_ENV` is `production` and when real keys are set.
+
+## App
+
+| Path | Purpose |
+| --- | --- |
+| `/sign-in`, `/sign-up` | Email/password and Google |
+| `/auth/callback` | OAuth and email confirmation |
+| `/dashboard` | Four KPI cards, skeleton while loading |
+| `/data` | Search, status filter, pagination, empty and skeleton states |
+| `/users` | Roles and people |
+| `/settings` | Profile, theme, workspace host |
+| `/forbidden` | Row-level security failure, not a blank page |
+| `/health` | Anonymous `ok` for nginx and the compose healthcheck |
+
+Protected routes go through `middleware.ts`, which refreshes the Supabase session and sends anonymous visitors to `/sign-in`. `/health` skips that check.
+
+## Tables the UI reads
+
+Schema and RLS live in `supabase/migrations/001_initial.sql`. When these tables are missing, the screens show labeled sample data. When a policy rejects a write, the screen shows the access-denied state.
+
+- `records`: `id`, `title`, `status` (`open` \| `in_progress` \| `done` \| `archived`), `owner_id`, `created_at`, `updated_at`
+- `profiles`: `id`, `email`, `full_name`, `role` (`owner` \| `admin` \| `member`), `status` (`active` \| `invited` \| `suspended`), `created_at`, `updated_at`
+
+## Design
+
+Geist Sans. Display 24/32 semibold, H1 20/28 semibold, H2 16/24 medium, body 14/20, caption 12/16. Heading tracking is −0.01em.
+
+Light / dark: background `#FAFAFA` / `#09090B`, surface `#FFFFFF` / `#18181B`, border `#E4E4E7` / `#27272A`, text `#09090B` / `#FAFAFA`, muted `#71717A`, primary `#2563EB` (hover `#1D4ED8`). Sidebar 240px (64px collapsed), header 56px, content max 1200px, page padding 24px (16px on small screens).
 
 ## Backend / Deploy
 
@@ -10,27 +85,21 @@ Frontend owns the Next.js UI: `app/`, `components/`, and the browser Supabase cl
 | --- | --- |
 | `supabase/migrations/001_initial.sql` | Roles, profiles, records, auth trigger, RLS |
 | `.env.example` | Public and server-only environment contract |
-| `deploy/Dockerfile` | Placeholder image on port 3000 until the Next.js app exists |
+| `deploy/Dockerfile` | Next.js standalone image on port 3000 |
 | `deploy/docker-compose.yml` | `app` + `nginx` on one VPS |
 | `deploy/nginx/stackforge.iquee.tech.conf` | TLS origin and reverse proxy to `app:3000` |
-| `.github/workflows/ci.yml` | Lint, typecheck, and build once `package.json` exists |
+| `.github/workflows/ci.yml` | Lint, typecheck, and build |
 
 ### Environment
 
-Copy the example and fill it in on the VPS and for local frontend development. `.env` is gitignored.
-
-```bash
-cp .env.example .env
-```
-
 | Variable | Where it is used |
 | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Browser and server. Project URL from the Supabase dashboard. |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Browser and server. The anon key. RLS still applies. |
+| `NEXT_PUBLIC_SUPABASE_URL` | Browser and server. `https://rnoglrespnizjxnybdcc.supabase.co`. |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Browser and server. The anon key. RLS still applies. Empty in git. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only. Bypasses RLS. Never prefix it with `NEXT_PUBLIC_`, never import it from a client component, and never print it. |
 | `NEXT_PUBLIC_APP_URL` | Canonical origin: `https://stackforge.iquee.tech`. |
 
-`NEXT_PUBLIC_*` values are inlined into the client bundle at build time. The service role key is read only from the server runtime environment (the compose `env_file` on the `app` service).
+`NEXT_PUBLIC_*` values are inlined into the client bundle at build time. Pass them as Docker build args. The service role key is read only from the server runtime environment (the compose `env_file` on the `app` service).
 
 ### Migrate
 
@@ -76,7 +145,7 @@ In the Supabase dashboard, Authentication → URL configuration:
 
 Enable each OAuth provider in Authentication → Providers. Provider client ids and secrets stay in the Supabase dashboard. This repo does not store them.
 
-The frontend callback route should exchange the code with the Supabase client and send the user back into the app. Google and GitHub populate `full_name` or `name`; `handle_new_user` copies that onto the profile and always stores `role = member`, `status = active`.
+`app/auth/callback` exchanges the code with the Supabase client and sends the user back into the app. Google and GitHub populate `full_name` or `name`; `handle_new_user` copies that onto the profile and always stores `role = member`, `status = active`.
 
 ### Deploy to a VPS
 
@@ -91,7 +160,7 @@ cp .env.example .env
 chmod +x deploy/scripts/generate-origin-cert.sh
 ./deploy/scripts/generate-origin-cert.sh
 cd deploy
-docker compose up -d --build
+docker compose --env-file ../.env up -d --build
 docker compose ps
 ```
 
@@ -99,16 +168,16 @@ docker compose ps
 
 nginx listens on 443, proxies to `app:3000`, restores the visitor IP from `CF-Connecting-IP` only when the TCP peer is Cloudflare, and redirects port 80 to HTTPS. `GET /health` stays on port 80 so the compose healthcheck can reach it without TLS.
 
-Until `package.json` and the Next.js app land, `deploy/Dockerfile` builds a placeholder that answers `/health` with `ok`. When frontend adds the app, switch that Dockerfile to the standalone multi-stage build commented at the top of the file (`output: "standalone"` in `next.config`) and keep the process on port 3000. Pass `NEXT_PUBLIC_*` as build arguments; they are compiled into the client. Keep `SUPABASE_SERVICE_ROLE_KEY` as a runtime environment variable on `app` only.
+`deploy/Dockerfile` is a multi-stage Next.js build. `next.config.ts` sets `output: "standalone"`, and the container runs `node server.js` on port 3000. `--env-file ../.env` supplies `NEXT_PUBLIC_*` as build args so they are compiled into the client. `SUPABASE_SERVICE_ROLE_KEY` is not a build arg; compose injects it at runtime on `app` only.
 
 Upgrade on the VPS:
 
 ```bash
 git pull
 cd deploy
-docker compose up -d --build
+docker compose --env-file ../.env up -d --build
 ```
 
 ### CI
 
-`.github/workflows/ci.yml` checks out the repo and, while `package.json` is absent, prints a no-op message. After frontend adds `package.json`, the job runs `npm run lint`, `npm run typecheck`, and `npm run build` on Node 22. Those three scripts need to exist. The build uses placeholder public env values so the workflow never carries a real key.
+`.github/workflows/ci.yml` runs `npm run lint`, `npm run typecheck`, and `npm run build` on Node 22 when `package.json` is present. The build uses placeholder public env values so the workflow never carries a real key.
