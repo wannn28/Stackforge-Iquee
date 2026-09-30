@@ -87,7 +87,7 @@ function UserMenu({ user, preview }: { user: SessionUser; preview: boolean }) {
         <DropdownMenu.Content
           align="end"
           sideOffset={8}
-          className="z-[60] min-w-[220px] rounded-md border border-border bg-surface p-1 shadow-card"
+          className="z-[60] min-w-[220px] rounded-md border border-border bg-surface p-1 shadow-popover"
         >
           <div className="px-3 py-2">
             <p className="truncate text-body font-medium text-foreground">{user.name}</p>
@@ -171,7 +171,7 @@ function Sidebar({
                 <Tooltip.Content
                   side="right"
                   sideOffset={8}
-                  className="z-50 hidden rounded-md border border-border bg-surface px-2 py-1 text-caption text-foreground shadow-card md:block"
+                  className="z-50 hidden rounded-md border border-border bg-surface px-2 py-1 text-caption text-foreground shadow-popover md:block"
                 >
                   {item.label}
                 </Tooltip.Content>

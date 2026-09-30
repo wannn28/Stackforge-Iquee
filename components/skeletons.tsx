@@ -9,11 +9,11 @@ function DataTableSkeleton() {
         <Skeleton className="h-10 flex-1" />
         <Skeleton className="h-10 w-full sm:w-40" />
       </div>
-      <div className="overflow-auto">
+      <div className="max-h-[640px] overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
+              <TableHead>Title</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Owner</TableHead>
               <TableHead>Updated</TableHead>

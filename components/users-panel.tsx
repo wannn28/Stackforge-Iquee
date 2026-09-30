@@ -6,14 +6,15 @@ import { useConfirm } from "@/components/confirm-dialog";
 import { ForbiddenState } from "@/components/resource-state";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { updateMemberRole } from "@/lib/actions";
-import type { Member, MemberRole, MemberStatus } from "@/lib/types";
+import { memberRoleLabel, memberStatusLabel, type Member, type MemberRole, type MemberStatus } from "@/lib/types";
 
 const roles: Array<{ id: MemberRole; title: string; detail: string }> = [
+  { id: "owner", title: "Owner", detail: "Full access, including people and every record." },
   { id: "admin", title: "Admin", detail: "Manage people, settings, and every record." },
-  { id: "member", title: "Member", detail: "Create and edit records shared with the workspace." },
-  { id: "viewer", title: "Viewer", detail: "Read records the row policy allows. No writes." },
+  { id: "member", title: "Member", detail: "Create and edit records the policy allows." },
 ];
 
 const statusTone: Record<MemberStatus, "success" | "warning" | "danger"> = {
@@ -32,7 +33,7 @@ function UsersPanel({ members }: { members: Member[] }) {
 
     const accepted = await confirm({
       title: "Change role?",
-      description: `${member.name} will become ${role}.`,
+      description: `${member.fullName} will become ${memberRoleLabel[role].toLowerCase()}.`,
       confirmLabel: "Update role",
       tone: "primary",
     });
@@ -42,10 +43,10 @@ function UsersPanel({ members }: { members: Member[] }) {
     const result = await updateMemberRole(member.id, role);
     if (!result.ok) {
       if (result.reason === "forbidden") {
-        setForbiddenMessage(result.message);
+        setForbiddenMessage(result.error);
         return;
       }
-      toast.error(result.message);
+      toast.error(result.error);
       return;
     }
 
@@ -72,7 +73,7 @@ function UsersPanel({ members }: { members: Member[] }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
+                <TableHead>Full name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Role</TableHead>
@@ -91,24 +92,27 @@ function UsersPanel({ members }: { members: Member[] }) {
               ) : (
                 rows.map((member) => (
                   <TableRow key={member.id} className="hover:bg-foreground/[0.03]">
-                    <TableCell className="font-medium">{member.name}</TableCell>
-                    <TableCell className="text-muted">{member.email}</TableCell>
+                    <TableCell className="font-medium">{member.fullName}</TableCell>
+                    <TableCell className="text-muted">{member.email || "—"}</TableCell>
                     <TableCell>
-                      <Badge tone={statusTone[member.status]}>{member.status}</Badge>
+                      <Badge tone={statusTone[member.status]}>{memberStatusLabel[member.status]}</Badge>
                     </TableCell>
                     <TableCell>
-                      <select
-                        aria-label={`Role for ${member.name}`}
+                      <Select
                         value={member.role}
-                        onChange={(event) => onRoleChange(member, event.target.value as MemberRole)}
-                        className="h-9 rounded-md border border-border bg-surface px-2 text-body text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        onValueChange={(value) => onRoleChange(member, value as MemberRole)}
                       >
-                        {roles.map((role) => (
-                          <option key={role.id} value={role.id}>
-                            {role.title}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger aria-label={`Role for ${member.fullName}`} className="w-[140px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {roles.map((role) => (
+                            <SelectItem key={role.id} value={role.id}>
+                              {role.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                   </TableRow>
                 ))

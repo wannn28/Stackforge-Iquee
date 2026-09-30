@@ -78,7 +78,7 @@ function AuthForm({
       return;
     }
     if (mode === "sign-up" && name.trim().length < 2) {
-      setFormError("Name must be at least 2 characters.");
+      setFormError("Full name must be at least 2 characters.");
       return;
     }
 
@@ -164,28 +164,10 @@ function AuthForm({
             </p>
           ) : null}
 
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            className="mt-6 w-full"
-            onClick={onGoogle}
-            disabled={pending !== null}
-          >
-            <GoogleMark />
-            {pending === "google" ? "Redirecting…" : "Continue with Google"}
-          </Button>
-
-          <div className="my-4 flex items-center gap-3">
-            <span className="h-px flex-1 bg-border" />
-            <span className="text-caption text-muted">or</span>
-            <span className="h-px flex-1 bg-border" />
-          </div>
-
-          <form className="flex flex-col gap-4" onSubmit={onPassword}>
+          <form className="mt-6 flex flex-col gap-4" onSubmit={onPassword}>
             {mode === "sign-up" ? (
               <div className="flex flex-col gap-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">Full name</Label>
                 <Input
                   id="name"
                   value={name}
@@ -223,6 +205,24 @@ function AuthForm({
               {pending === "password" ? "Please wait…" : submitLabel}
             </Button>
           </form>
+
+          <div className="my-4 flex items-center gap-3">
+            <span className="h-px flex-1 bg-border" />
+            <span className="text-caption text-muted">or</span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="w-full"
+            onClick={onGoogle}
+            disabled={pending !== null}
+          >
+            <GoogleMark />
+            {pending === "google" ? "Redirecting…" : "Continue with Google"}
+          </Button>
         </Card>
         <p className="mt-4 text-center text-body text-muted">
           {mode === "sign-in" ? "No account yet?" : "Already have an account?"}{" "}

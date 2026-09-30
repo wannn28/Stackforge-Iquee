@@ -17,7 +17,7 @@ function Badge({
   return (
     <span
       className={cn(
-        "inline-flex h-6 items-center rounded-sm px-2 text-caption font-medium capitalize",
+        "inline-flex h-6 items-center rounded-sm px-2 text-caption font-medium",
         tones[tone],
         className,
       )}

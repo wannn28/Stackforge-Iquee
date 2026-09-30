@@ -1,92 +1,24 @@
 import "server-only";
 import { cache } from "react";
 import { kpisFromRecords, sampleMembers, sampleRecords } from "@/lib/sample-data";
+import { mapMember, mapRecord } from "@/lib/rows";
 import { classifySupabaseError } from "@/lib/supabase/errors";
 import { isPreviewMode, isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
-import type {
-  Kpi,
-  LoadResult,
-  Member,
-  MemberRole,
-  MemberStatus,
-  RecordStatus,
-  SessionUser,
-  TableRecord,
-} from "@/lib/types";
+import type { Kpi, LoadResult, Member, SessionUser, TableRecord } from "@/lib/types";
 
-const RECORD_STATUSES = new Set<RecordStatus>(["active", "draft", "archived"]);
-const MEMBER_ROLES = new Set<MemberRole>(["admin", "member", "viewer"]);
-const MEMBER_STATUSES = new Set<MemberStatus>(["active", "invited", "suspended"]);
+const RECORD_COLUMNS = "id, title, status, owner_id, created_at, updated_at";
+const PROFILE_COLUMNS = "id, email, full_name, role, status, created_at, updated_at";
 
-function asString(value: unknown) {
-  return typeof value === "string" ? value : null;
-}
-
-function mapRecord(row: unknown): TableRecord | null {
-  if (!row || typeof row !== "object") return null;
-  const value = row as Record<string, unknown>;
-  const id = asString(value.id);
-  const name = asString(value.name) ?? asString(value.title);
-  if (!id || !name) return null;
-
-  const statusValue = asString(value.status);
-  const status = RECORD_STATUSES.has(statusValue as RecordStatus)
-    ? (statusValue as RecordStatus)
-    : "draft";
-  const owner = asString(value.owner) ?? asString(value.owner_name) ?? "—";
-  const updatedAt = asString(value.updated_at) ?? asString(value.updatedAt) ?? new Date(0).toISOString();
-
-  return { id, name, status, owner, updatedAt };
-}
-
-function mapMember(row: unknown): Member | null {
-  if (!row || typeof row !== "object") return null;
-  const value = row as Record<string, unknown>;
-  const id = asString(value.id);
-  const email = asString(value.email) ?? "—";
-  const name = asString(value.full_name) ?? asString(value.name) ?? email;
-  if (!id || !name) return null;
-
-  const roleValue = asString(value.role)?.toLowerCase() ?? "member";
-  const statusValue = asString(value.status)?.toLowerCase() ?? "active";
-
-  return {
-    id,
-    name,
-    email,
-    role: MEMBER_ROLES.has(roleValue as MemberRole) ? (roleValue as MemberRole) : "member",
-    status: MEMBER_STATUSES.has(statusValue as MemberStatus)
-      ? (statusValue as MemberStatus)
-      : "active",
-  };
-}
-
-async function loadTable<T>(
-  table: "records" | "profiles",
-  mapRow: (row: unknown) => T | null,
-  sample: T[],
-): Promise<LoadResult<T[]>> {
-  if (!isSupabaseConfigured()) {
+function failure<T>(error: { code?: string; message?: string; details?: string | null; hint?: string | null }, sample: T): LoadResult<T> | null {
+  const classified = classifySupabaseError(error);
+  if (classified.reason === "forbidden") {
+    return { status: "forbidden", message: classified.message };
+  }
+  if (classified.reason === "missing") {
     return { status: "ready", data: sample, source: "sample" };
   }
-
-  const supabase = await createClient();
-  const { data, error } = await supabase.from(table).select("*").limit(200);
-
-  if (error) {
-    const classified = classifySupabaseError(error);
-    if (classified.reason === "forbidden") {
-      return { status: "forbidden", message: classified.message };
-    }
-    if (classified.reason === "missing") {
-      return { status: "ready", data: sample, source: "sample" };
-    }
-    return { status: "error", message: classified.message };
-  }
-
-  const rows = (data ?? []).map(mapRow).filter((row): row is T => row !== null);
-  return { status: "ready", data: rows, source: "live" };
+  return { status: "error", message: classified.message };
 }
 
 export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
@@ -120,11 +52,73 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
 });
 
 export async function getRecords(): Promise<LoadResult<TableRecord[]>> {
-  return loadTable("records", mapRecord, sampleRecords);
+  if (!isSupabaseConfigured()) {
+    return { status: "ready", data: sampleRecords, source: "sample" };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("records")
+    .select(RECORD_COLUMNS)
+    .order("updated_at", { ascending: false })
+    .limit(200);
+
+  if (error) {
+    const result = failure(error, sampleRecords);
+    if (result) return result;
+  }
+
+  const ownerIds = [
+    ...new Set(
+      (data ?? [])
+        .map((row) => {
+          const ownerId = (row as { owner_id?: unknown }).owner_id;
+          return typeof ownerId === "string" ? ownerId : null;
+        })
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+
+  const ownerNames = new Map<string, string>();
+  if (ownerIds.length > 0) {
+    const profiles = await supabase.from("profiles").select("id, full_name, email").in("id", ownerIds);
+    if (!profiles.error) {
+      for (const profile of profiles.data ?? []) {
+        const id = typeof profile.id === "string" ? profile.id : null;
+        if (!id) continue;
+        const fullName = typeof profile.full_name === "string" ? profile.full_name : "";
+        const email = typeof profile.email === "string" ? profile.email : "";
+        ownerNames.set(id, fullName || email || id);
+      }
+    }
+  }
+
+  const rows = (data ?? [])
+    .map((row) => mapRecord(row, ownerNames))
+    .filter((row): row is TableRecord => row !== null);
+
+  return { status: "ready", data: rows, source: "live" };
 }
 
 export async function getMembers(): Promise<LoadResult<Member[]>> {
-  return loadTable("profiles", mapMember, sampleMembers);
+  if (!isSupabaseConfigured()) {
+    return { status: "ready", data: sampleMembers, source: "sample" };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select(PROFILE_COLUMNS)
+    .order("created_at", { ascending: true })
+    .limit(200);
+
+  if (error) {
+    const result = failure(error, sampleMembers);
+    if (result) return result;
+  }
+
+  const rows = (data ?? []).map(mapMember).filter((row): row is Member => row !== null);
+  return { status: "ready", data: rows, source: "live" };
 }
 
 export async function getDashboardKpis(): Promise<LoadResult<Kpi[]>> {

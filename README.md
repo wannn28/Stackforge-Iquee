@@ -26,21 +26,21 @@ cp .env.example .env.local
   - `http://localhost:3000/auth/callback`
 - Auth providers: Email and Google
 
-3. Copy env and fill the anon key locally. `.env.example` already has the public project URL. The anon JWT is not in git.
+3. Copy the example env, then put the anon key only in the gitignored file:
 
 ```bash
 cp .env.example .env.local
 ```
 
-`.env.local` (gitignored):
+`.env.example` sets the public project URL. It leaves `NEXT_PUBLIC_SUPABASE_ANON_KEY` empty. Do not commit that key.
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://moqlrespnizjxnybdcc.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_SUPABASE_URL=https://rnoglrespnizjxnybdcc.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=   # paste the team anon JWT here, in .env.local only
 NEXT_PUBLIC_SITE_URL=https://stackforge.iquee.tech
 ```
 
-Paste the team anon JWT into `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Decode the middle segment and confirm the `ref` claim is `moqlrespnizjxnybdcc` before saving it. This checkout does not include that JWT, so the key stays blank here. `createBrowserClient` and `createServerClient` both read `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. If the JWT `ref` does not match the project ref in the URL, those clients stay unconfigured.
+The host `moqlrespnizjxnybdcc.supabase.co` does not resolve. Use `rnoglrespnizjxnybdcc` only. Decode the JWT payload and confirm `ref` is `rnoglrespnizjxnybdcc` before saving `.env.local`. `createBrowserClient` and `createServerClient` both read `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. If the JWT `ref` does not match the project ref in the URL, those clients stay unconfigured.
 
 `SUPABASE_SERVICE_ROLE_KEY` is server-only. Do not prefix it with `NEXT_PUBLIC_` and do not import it from client components. This app never sends it to the browser, so row-level security still applies to every query.
 
@@ -71,8 +71,8 @@ Protected routes go through `middleware.ts`, which refreshes the Supabase sessio
 
 When these tables are missing, the screens show labeled sample data. When a policy rejects a write, the screen shows the access-denied state.
 
-- `records`: `id`, `name`, `status` (`active` \| `draft` \| `archived`), `owner`, `updated_at`
-- `profiles`: `id`, `full_name`, `email`, `role` (`admin` \| `member` \| `viewer`), `status` (`active` \| `invited` \| `suspended`)
+- `records`: `id`, `title`, `status` (`open` \| `in_progress` \| `done` \| `archived`), `owner_id`, `created_at`, `updated_at`
+- `profiles`: `id`, `email`, `full_name`, `role` (`owner` \| `admin` \| `member`), `status` (`active` \| `invited` \| `suspended`), `created_at`, `updated_at`
 
 ## Design
 

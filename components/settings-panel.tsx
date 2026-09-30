@@ -30,7 +30,7 @@ function SettingsPanel({ user }: { user: SessionUser }) {
     const result = await updateProfileName(name);
     setSaving(false);
     if (!result.ok) {
-      toast.error(result.message);
+      toast.error(result.error);
       return;
     }
     toast.success("Profile saved");
@@ -51,10 +51,10 @@ function SettingsPanel({ user }: { user: SessionUser }) {
     <div className="flex max-w-2xl flex-col gap-4">
       <Card className="p-6">
         <h2 className="text-h2 text-foreground">Profile</h2>
-        <p className="mt-1 text-body text-muted">Name shown in the workspace.</p>
+        <p className="mt-1 text-body text-muted">Full name stored on your profile.</p>
         <form className="mt-4 flex flex-col gap-4" onSubmit={onSave}>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="name">Full name</Label>
             <Input
               id="name"
               value={name}

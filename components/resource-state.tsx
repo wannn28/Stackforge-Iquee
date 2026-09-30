@@ -14,15 +14,15 @@ function ForbiddenState({
       <p className="text-caption font-medium text-danger">Access denied</p>
       <h1 className="mt-2 text-h1 text-foreground">You don&apos;t have access</h1>
       <p className="mt-2 max-w-xl text-body text-muted">
-        Your account is signed in, but this read was rejected. {message} Ask an admin to grant
-        this role access, then retry.
+        Your account is signed in, but this read was rejected. {message} Ask an owner or admin to
+        grant this role access, then retry.
       </p>
       <div className="mt-6 flex flex-wrap gap-2">
         <Button asChild>
           <Link href="/dashboard">Back to dashboard</Link>
         </Button>
         <Button variant="outline" asChild>
-          <Link href="/forbidden">Review access</Link>
+          <Link href="/settings">Open settings</Link>
         </Button>
       </div>
     </Card>

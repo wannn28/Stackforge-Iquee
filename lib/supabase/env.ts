@@ -4,8 +4,11 @@ const PLACEHOLDER_HOSTS = new Set([
   "example.supabase.co",
 ]);
 
-/** Production project. The anon JWT `ref` claim must match this when the URL is this host. */
-export const STACKFORGE_SUPABASE_REF = "moqlrespnizjxnybdcc";
+/** Retired host. It does not resolve and must not be used. */
+const RETIRED_HOSTS = new Set(["moqlrespnizjxnybdcc.supabase.co"]);
+
+/** Production project. The anon JWT `ref` claim must equal this value. */
+export const STACKFORGE_SUPABASE_REF = "rnoglrespnizjxnybdcc";
 
 export type SupabasePublicEnv = {
   url: string;
@@ -15,7 +18,7 @@ export type SupabasePublicEnv = {
 function projectRefFromUrl(url: string) {
   try {
     const { host } = new URL(url);
-    if (PLACEHOLDER_HOSTS.has(host)) return null;
+    if (PLACEHOLDER_HOSTS.has(host) || RETIRED_HOSTS.has(host)) return null;
     const [ref, ...rest] = host.split(".");
     if (!ref || rest.join(".") !== "supabase.co") return null;
     return ref;
