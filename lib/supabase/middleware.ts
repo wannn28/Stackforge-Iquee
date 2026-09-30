@@ -17,11 +17,16 @@ function copyCookies(from: NextResponse, to: NextResponse) {
 }
 
 export async function updateSession(request: NextRequest) {
-  if (isPreviewMode()) {
+  const { pathname, search } = request.nextUrl;
+
+  // nginx and the compose healthcheck call /health with no session.
+  if (pathname === "/health") {
     return NextResponse.next({ request });
   }
 
-  const { pathname, search } = request.nextUrl;
+  if (isPreviewMode()) {
+    return NextResponse.next({ request });
+  }
 
   if (!isSupabaseConfigured()) {
     if (isPublicPath(pathname)) {

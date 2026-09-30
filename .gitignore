@@ -19,10 +19,13 @@
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
 *.pem
+*.key
+*.crt
 
 # debug
 npm-debug.log*
@@ -33,6 +36,10 @@ yarn-error.log*
 # env files — keep the example committed
 .env*
 !.env.example
+
+# origin TLS material for nginx; keep the directory
+deploy/certs/*
+!deploy/certs/.gitkeep
 
 # vercel
 .vercel
