@@ -9,7 +9,19 @@ function DataTableSkeleton() {
         <Skeleton className="h-10 flex-1" />
         <Skeleton className="h-10 w-full sm:w-40" />
       </div>
-      <div className="max-h-[640px] overflow-auto">
+      <div className="divide-y divide-border md:hidden">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="flex flex-col gap-3 px-4 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-6 w-16" />
+            </div>
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="ml-auto h-8 w-20" />
+          </div>
+        ))}
+      </div>
+      <div className="hidden max-h-[640px] overflow-auto md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -59,7 +71,52 @@ function UsersSkeleton() {
           </Card>
         ))}
       </div>
-      <DataTableSkeleton />
+      <Card className="overflow-hidden">
+        <div className="divide-y divide-border md:hidden">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="flex flex-col gap-3 px-4 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="mt-2 h-3 w-40" />
+                </div>
+                <Skeleton className="h-6 w-16" />
+              </div>
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ))}
+        </div>
+        <div className="hidden max-h-[640px] overflow-auto md:block">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Full name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Role</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 6 }).map((_, index) => (
+                <TableRow key={index}>
+                  <TableCell>
+                    <Skeleton className="h-4 w-32" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-40" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-16" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-10 w-[140px]" />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
     </div>
   );
 }

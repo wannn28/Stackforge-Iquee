@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import { KpiGrid } from "@/components/kpi-cards";
 import { PageHeader } from "@/components/page-header";
+import { RecentActivity } from "@/components/recent-activity";
 import { ErrorState, ForbiddenState, SampleNotice } from "@/components/resource-state";
-import { getDashboardKpis } from "@/lib/data";
+import { getRecords } from "@/lib/data";
+import { kpisFromRecords } from "@/lib/sample-data";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
-  const result = await getDashboardKpis();
+  const result = await getRecords();
 
   return (
     <>
@@ -20,7 +22,10 @@ export default async function DashboardPage() {
       {result.status === "ready" ? (
         <>
           {result.source === "sample" ? <SampleNotice table="records" /> : null}
-          <KpiGrid items={result.data} />
+          <div className="flex flex-col gap-6">
+            <KpiGrid items={kpisFromRecords(result.data)} />
+            <RecentActivity records={result.data} />
+          </div>
         </>
       ) : null}
     </>
