@@ -26,13 +26,21 @@ cp .env.example .env.local
   - `http://localhost:3000/auth/callback`
 - Auth providers: Email and Google
 
-3. Put the project URL and anon key in `.env.local`:
+3. Copy env and fill the anon key locally. `.env.example` already has the public project URL. The anon JWT is not in git.
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_ANON_KEY
+cp .env.example .env.local
+```
+
+`.env.local` (gitignored):
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://moqlrespnizjxnybdcc.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_SITE_URL=https://stackforge.iquee.tech
 ```
+
+Paste the team anon JWT into `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Decode the middle segment and confirm the `ref` claim is `moqlrespnizjxnybdcc` before saving it. This checkout does not include that JWT, so the key stays blank here. `createBrowserClient` and `createServerClient` both read `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. If the JWT `ref` does not match the project ref in the URL, those clients stay unconfigured.
 
 `SUPABASE_SERVICE_ROLE_KEY` is server-only. Do not prefix it with `NEXT_PUBLIC_` and do not import it from client components. This app never sends it to the browser, so row-level security still applies to every query.
 
