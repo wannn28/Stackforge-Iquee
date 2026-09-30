@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+
+node_modules
+.next
+out
+dist
+coverage
+*.tsbuildinfo
+
+deploy/certs/*
+!deploy/certs/.gitkeep
+
+*.pem
+*.key
+*.crt

@@ -1,0 +1,63 @@
+# Frontend owns the Next.js app. Until package.json exists this workflow is a
+# no-op echo. When package.json is added, the same job lints, typechecks, and
+# builds. Expected scripts: "lint", "typecheck", and "build".
+# Do not put real Supabase keys in this file. The build step uses public
+# placeholders because Next.js inlines NEXT_PUBLIC_* at build time.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: lint, typecheck, build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: No app yet
+        if: ${{ hashFiles('package.json') == '' }}
+        run: echo "No package.json yet. Frontend owns the Next.js app; CI will lint, typecheck, and build once it is added."
+
+      - name: Setup Node
+        if: ${{ hashFiles('package.json') != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        if: ${{ hashFiles('package.json') != '' }}
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Lint
+        if: ${{ hashFiles('package.json') != '' }}
+        run: npm run lint
+
+      - name: Typecheck
+        if: ${{ hashFiles('package.json') != '' }}
+        run: npm run typecheck
+
+      - name: Build
+        if: ${{ hashFiles('package.json') != '' }}
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: public-anon-placeholder
+          NEXT_PUBLIC_APP_URL: https://stackforge.iquee.tech
